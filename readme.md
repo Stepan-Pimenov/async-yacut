@@ -1,60 +1,88 @@
-### Как запустить проект Yacut:
+# YaCut - сервис укорачивания ссылок
 
-Клонировать репозиторий и перейти в него в командной строке:
+YaCut ассоциирует длинную ссылку с короткой: пользователь может предложить свой
+вариант или получить сгенерированный сервисом. Дополнительно можно загрузить
+сразу несколько файлов на Яндекс Диск и получить короткие ссылки на их скачивание
+(загрузка асинхронная, через aiohttp).
+
+Возможности:
+- главная страница `/` - создание коротких ссылок;
+- страница `/files` - загрузка файлов и генерация коротких ссылок к ним;
+- переход по короткой ссылке ведёт на оригинальный адрес или скачивание файла;
+- API с двумя эндпоинтами (см. `openapi.yml`).
+
+## Технологии
+
+- Python 3.12
+- Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-WTF
+- aiohttp (асинхронные запросы к API Яндекс Диска)
+- SQLite
+
+## Запуск проекта
+
+Клонировать репозиторий и перейти в него:
 
 ```
-git clone 
-```
-
-```
+git clone git@github.com:<username>/yacut.git
 cd yacut
 ```
 
-Cоздать и активировать виртуальное окружение:
+Создать и активировать виртуальное окружение:
 
 ```
-python3 -m venv venv
+python -m venv venv
 ```
 
-* Если у вас Linux/macOS
+- Linux/macOS: `source venv/bin/activate`
+- Windows: `source venv/Scripts/activate`
 
-    ```
-    source venv/bin/activate
-    ```
-
-* Если у вас windows
-
-    ```
-    source venv/scripts/activate
-    ```
-
-Установить зависимости из файла requirements.txt:
+Установить зависимости:
 
 ```
-python3 -m pip install --upgrade pip
-```
-
-```
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Создать в директории проекта файл .env с четыремя переменными окружения:
+Создать файл `.env` (пример - в `.env.example`):
 
 ```
 FLASK_APP=yacut
-FLASK_ENV=development
-SECRET_KEY=your_secret_key
-DB=sqlite:///db.sqlite3
+FLASK_DEBUG=1
+DATABASE_URI=sqlite:///db.sqlite3
+SECRET_KEY=ваш_секретный_ключ
+DISK_TOKEN=ваш_токен_яндекс_диска
 ```
 
-Создать базу данных и применить миграции:
+Токен Яндекс Диска получают на https://oauth.yandex.ru с доступами
+`cloud_api:disk.app_folder` и `cloud_api:disk.info`.
+
+Применить миграции и запустить проект:
 
 ```
 flask db upgrade
-```
-
-Запустить проект:
-
-```
 flask run
 ```
+
+## API
+
+Спецификация - в файле `openapi.yml` (можно открыть в https://editor.swagger.io).
+
+Создание короткой ссылки:
+
+```
+POST /api/id/
+{
+  "url": "https://practicum.yandex.ru/",
+  "custom_id": "practicum"
+}
+```
+
+Получение оригинальной ссылки по идентификатору:
+
+```
+GET /api/id/<short_id>/
+```
+
+## Автор
+
+Степан Пименов
