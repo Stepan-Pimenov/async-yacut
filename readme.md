@@ -23,8 +23,8 @@ YaCut ассоциирует длинную ссылку с короткой: п
 Клонировать репозиторий и перейти в него:
 
 ```
-git clone git@github.com:<username>/yacut.git
-cd yacut
+git clone git@github.com:Stepan-Pimenov/async-yacut.git
+cd async-yacut
 ```
 
 Создать и активировать виртуальное окружение:
@@ -48,7 +48,7 @@ pip install -r requirements.txt
 ```
 FLASK_APP=yacut
 FLASK_DEBUG=1
-DATABASE_URI=sqlite:///db.sqlite3
+DATABASE_URI=sqlite:///yacut.db
 SECRET_KEY=ваш_секретный_ключ
 DISK_TOKEN=ваш_токен_яндекс_диска
 ```
@@ -80,9 +80,9 @@ POST /api/id/
 Получение оригинальной ссылки по идентификатору:
 
 ```
-GET /api/id/<short_id>/
+GET /api/id/<short>/
 ```
 
 ## Автор
 
-Степан Пименов
+Степан Пименов - [github.com/Stepan-Pimenov](https://github.com/Stepan-Pimenov)

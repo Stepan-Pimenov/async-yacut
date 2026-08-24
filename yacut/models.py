@@ -1,69 +1,66 @@
-from datetime import datetime, timezone
+import re
+from datetime import datetime
 from random import choices
-
-from flask import url_for
 
 from . import db
 from .constants import (
     ALLOWED_CHARS,
-    DUPLICATE_SHORT_ID_MESSAGE,
-    INVALID_SHORT_ID_MESSAGE,
-    RESERVED_SHORT_IDS,
-    SHORT_ID_LENGTH,
-    SHORT_ID_MAX_LENGTH,
+    GENERATION_ATTEMPTS,
+    ORIGINAL_MAX_LENGTH,
+    RESERVED_SHORTS,
+    SHORT_LENGTH,
+    SHORT_MAX_LENGTH,
+    SHORT_PATTERN,
 )
-from .error_handlers import InvalidAPIUsage
-from .utils import is_short_id_format_valid
+
+INVALID_SHORT_MESSAGE = 'Указано недопустимое имя для короткой ссылки'
+DUPLICATE_SHORT_MESSAGE = (
+    'Предложенный вариант короткой ссылки уже существует.'
+)
+LONG_ORIGINAL_MESSAGE = 'Слишком длинная ссылка.'
+NO_UNIQUE_SHORT_MESSAGE = 'Не удалось подобрать уникальную короткую ссылку.'
 
 
 class URLMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     original = db.Column(db.Text, nullable=False)
     short = db.Column(
-        db.String(SHORT_ID_MAX_LENGTH), unique=True, nullable=False
+        db.String(SHORT_MAX_LENGTH), unique=True, nullable=False
     )
-    timestamp = db.Column(
-        db.DateTime,
-        index=True,
-        default=lambda: datetime.now(timezone.utc),
-    )
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
-    def to_dict(self):
-        return dict(
-            url=self.original,
-            short_link=url_for(
-                'redirect_view', short=self.short, _external=True
-            ),
-        )
+    @staticmethod
+    def get(short):
+        return URLMap.query.filter_by(short=short).first()
 
-    @classmethod
-    def get_by_short(cls, short):
-        return cls.query.filter_by(short=short).first()
-
-    @classmethod
-    def is_short_id_available(cls, short):
+    @staticmethod
+    def is_short_valid(short):
         return (
-            short not in RESERVED_SHORT_IDS
-            and cls.get_by_short(short) is None
+            len(short) <= SHORT_MAX_LENGTH
+            and re.match(SHORT_PATTERN, short)
         )
 
-    @classmethod
-    def get_unique_short_id(cls):
-        while True:
-            short = ''.join(choices(ALLOWED_CHARS, k=SHORT_ID_LENGTH))
-            if cls.is_short_id_available(short):
+    @staticmethod
+    def get_unique_short():
+        for _ in range(GENERATION_ATTEMPTS):
+            short = ''.join(choices(ALLOWED_CHARS, k=SHORT_LENGTH))
+            if URLMap.get(short) is None:
                 return short
+        raise ValueError(NO_UNIQUE_SHORT_MESSAGE)
 
-    @classmethod
-    def create(cls, original, short=None):
+    @staticmethod
+    def create(original, short=None, validate=True, commit=True):
+        if validate and len(original) > ORIGINAL_MAX_LENGTH:
+            raise ValueError(LONG_ORIGINAL_MESSAGE)
         if short:
-            if not is_short_id_format_valid(short):
-                raise InvalidAPIUsage(INVALID_SHORT_ID_MESSAGE)
-            if not cls.is_short_id_available(short):
-                raise InvalidAPIUsage(DUPLICATE_SHORT_ID_MESSAGE)
+            if validate and not URLMap.is_short_valid(short):
+                raise ValueError(INVALID_SHORT_MESSAGE)
+            if short in RESERVED_SHORTS or URLMap.get(short) is not None:
+                raise ValueError(DUPLICATE_SHORT_MESSAGE)
         else:
-            short = cls.get_unique_short_id()
-        url_map = cls(original=original, short=short)
+            short = URLMap.get_unique_short()
+        url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
-        db.session.commit()
+        if commit:
+            db.session.commit()
         return url_map

@@ -1,17 +1,15 @@
 from http import HTTPStatus
 
-from flask import abort, flash, redirect, render_template
+import aiohttp
+from flask import abort, flash, redirect, render_template, url_for
 
-from . import app, db
-from .error_handlers import InvalidAPIUsage
+from . import app
+from .constants import REDIRECT_VIEW
 from .forms import FileForm, URLForm
 from .models import URLMap
 from .yandex_disk import async_upload_files
 
-
-@app.shell_context_processor
-def get_shell_context():
-    return {'db': db, 'URLMap': URLMap}
+UPLOAD_ERROR_MESSAGE = 'Не удалось загрузить файлы. Попробуйте позже.'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -20,11 +18,14 @@ def index_view():
     if not form.validate_on_submit():
         return render_template('index.html', form=form)
     try:
-        url_map = URLMap.create(form.original_link.data, form.custom_id.data)
-    except InvalidAPIUsage as error:
-        flash(error.message)
+        short = URLMap.create(
+            form.original_link.data, form.custom_id.data, validate=False
+        ).short
+    except ValueError as error:
+        flash(str(error))
         return render_template('index.html', form=form)
-    return render_template('index.html', form=form, url_map=url_map)
+    short_url = url_for(REDIRECT_VIEW, short=short, _external=True)
+    return render_template('index.html', form=form, short_url=short_url)
 
 
 @app.route('/files', methods=['GET', 'POST'])
@@ -32,16 +33,29 @@ async def files_view():
     form = FileForm()
     if not form.validate_on_submit():
         return render_template('files.html', form=form)
-    upload_results = await async_upload_files(form.files.data)
-    url_maps = []
-    for file_name, download_link in upload_results:
-        url_maps.append((file_name, URLMap.create(original=download_link)))
-    return render_template('files.html', form=form, url_maps=url_maps)
+    files = form.files.data
+    try:
+        download_links = await async_upload_files(files)
+    except aiohttp.ClientError:
+        flash(UPLOAD_ERROR_MESSAGE)
+        return render_template('files.html', form=form)
+    last = len(download_links) - 1
+    url_maps = [
+        URLMap.create(link, validate=False, commit=(index == last))
+        for index, link in enumerate(download_links)
+    ]
+    file_links = [
+        (
+            file.filename,
+            url_for(REDIRECT_VIEW, short=url_map.short, _external=True),
+        )
+        for file, url_map in zip(files, url_maps)
+    ]
+    return render_template('files.html', form=form, file_links=file_links)
 
 
-@app.route('/<short>')
+@app.route('/<short>', endpoint=REDIRECT_VIEW)
 def redirect_view(short):
-    url_map = URLMap.get_by_short(short)
-    if url_map is None:
+    if (url_map := URLMap.get(short)) is None:
         abort(HTTPStatus.NOT_FOUND)
     return redirect(url_map.original)
