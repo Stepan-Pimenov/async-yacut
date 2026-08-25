@@ -20,10 +20,12 @@ INVALID_SHORT_MESSAGE = 'Указано недопустимое имя для �
 DUPLICATE_SHORT_MESSAGE = (
     'Предложенный вариант короткой ссылки уже существует.'
 )
-LONG_ORIGINAL_MESSAGE = 'Слишком длинная ссылка.'
+LONG_ORIGINAL_MESSAGE = (
+    f'Слишком длинная ссылка (максимум - {ORIGINAL_MAX_LENGTH}).'
+)
 NO_UNIQUE_SHORT_MESSAGE = (
     'Не удалось подобрать уникальную короткую ссылку '
-    f'(число попыток - {GENERATION_ATTEMPTS}).'
+    f'(попыток - {GENERATION_ATTEMPTS}).'
 )
 
 

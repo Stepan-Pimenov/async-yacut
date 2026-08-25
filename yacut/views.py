@@ -8,8 +8,6 @@ from .forms import FileForm, URLForm
 from .models import URLMap
 from .yandex_disk import async_upload_files
 
-UPLOAD_ERROR_MESSAGE = 'Не удалось загрузить файлы. Попробуйте позже.'
-
 
 @app.route('/', methods=['GET', 'POST'])
 def index_view():
@@ -26,7 +24,7 @@ def index_view():
                 validate=False,
             ).get_short_url(),
         )
-    except ValueError as error:
+    except (ValueError, RuntimeError) as error:
         flash(str(error))
         return render_template('index.html', form=form)
 
@@ -39,24 +37,24 @@ async def files_view():
     files = form.files.data
     try:
         download_links = await async_upload_files(files)
+    except Exception as error:
+        flash(str(error))
+        return render_template('files.html', form=form)
+    try:
         return render_template(
             'files.html',
             form=form,
-            file_links=[
-                (
-                    file.filename,
-                    URLMap.create(
-                        link,
-                        commit=(index == len(download_links) - 1),
-                    ).get_short_url(),
-                )
-                for index, (file, link) in enumerate(
-                    zip(files, download_links)
-                )
-            ],
+            file_links=[(
+                file.filename,
+                URLMap.create(
+                    link, commit=(index == len(download_links) - 1),
+                ).get_short_url(),
+            ) for index, (file, link) in enumerate(
+                zip(files, download_links)
+            )],
         )
-    except Exception:
-        flash(UPLOAD_ERROR_MESSAGE)
+    except (ValueError, RuntimeError) as error:
+        flash(str(error))
         return render_template('files.html', form=form)
 
 
