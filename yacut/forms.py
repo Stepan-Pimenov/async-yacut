@@ -11,8 +11,10 @@ SUBMIT_LABEL = 'Создать'
 FILES_LABEL = 'Выберите файлы'
 UPLOAD_LABEL = 'Загрузить'
 REQUIRED_MESSAGE = 'Обязательное поле'
-LONG_ORIGINAL_MESSAGE = 'Максимальная длина ссылки - {} символов'
-LONG_SHORT_MESSAGE = 'Максимальная длина - {} символов'
+LONG_ORIGINAL_MESSAGE = (
+    f'Максимальная длина ссылки в символах - {ORIGINAL_MAX_LENGTH}'
+)
+LONG_SHORT_MESSAGE = f'Максимальная длина в символах - {SHORT_MAX_LENGTH}'
 INVALID_SHORT_MESSAGE = 'Указано недопустимое имя для короткой ссылки'
 FILES_REQUIRED_MESSAGE = 'Выберите хотя бы один файл'
 
@@ -22,20 +24,14 @@ class URLForm(FlaskForm):
         ORIGINAL_LABEL,
         validators=[
             DataRequired(message=REQUIRED_MESSAGE),
-            Length(
-                max=ORIGINAL_MAX_LENGTH,
-                message=LONG_ORIGINAL_MESSAGE.format(ORIGINAL_MAX_LENGTH),
-            ),
+            Length(max=ORIGINAL_MAX_LENGTH, message=LONG_ORIGINAL_MESSAGE),
         ],
     )
     custom_id = StringField(
         CUSTOM_ID_LABEL,
         validators=[
             Optional(),
-            Length(
-                max=SHORT_MAX_LENGTH,
-                message=LONG_SHORT_MESSAGE.format(SHORT_MAX_LENGTH),
-            ),
+            Length(max=SHORT_MAX_LENGTH, message=LONG_SHORT_MESSAGE),
             Regexp(SHORT_PATTERN, message=INVALID_SHORT_MESSAGE),
         ],
     )

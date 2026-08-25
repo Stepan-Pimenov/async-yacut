@@ -1,9 +1,8 @@
 from http import HTTPStatus
 
-from flask import jsonify, request, url_for
+from flask import jsonify, request
 
 from . import app
-from .constants import REDIRECT_VIEW
 from .error_handlers import InvalidAPIUsage
 from .models import URLMap
 
@@ -20,15 +19,14 @@ def create_url_map():
     if 'url' not in data:
         raise InvalidAPIUsage(MISSING_FIELD_MESSAGE.format('url'))
     try:
-        url_map = URLMap.create(data['url'], data.get('custom_id'))
+        return jsonify({
+            'url': data['url'],
+            'short_link': URLMap.create(
+                data['url'], data.get('custom_id')
+            ).get_short_url(),
+        }), HTTPStatus.CREATED
     except ValueError as error:
         raise InvalidAPIUsage(str(error))
-    return jsonify({
-        'url': url_map.original,
-        'short_link': url_for(
-            REDIRECT_VIEW, short=url_map.short, _external=True
-        ),
-    }), HTTPStatus.CREATED
 
 
 @app.route('/api/id/<short>/', methods=['GET'])

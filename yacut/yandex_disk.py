@@ -22,7 +22,7 @@ async def async_upload_files(files):
 
 
 async def upload_file_and_get_link(session, file):
-    path = 'app:/' + file.filename
+    path = f'app:/{file.filename}'  # noqa: E231
     upload_link = await get_upload_link(session, path)
     await put_file(session, upload_link, file.read())
     return await get_download_link(session, path)

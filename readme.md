@@ -85,4 +85,8 @@ GET /api/id/<short>/
 
 ## Автор
 
-Степан Пименов - [github.com/Stepan-Pimenov](https://github.com/Stepan-Pimenov)
+Степан Пименов
+
+- GitHub: [Stepan-Pimenov](https://github.com/Stepan-Pimenov)
+- Telegram: [@no_skill_just_music](https://t.me/no_skill_just_music)
+- Email: [pimenov001@icloud.com](mailto:pimenov001@icloud.com)
